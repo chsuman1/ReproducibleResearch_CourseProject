@@ -1,0 +1,124 @@
+---
+title: "Health and Economic Consequences of Storms Across the US"
+date: "Tuesday, November 18, 2014"
+output: html_document
+---
+#Reproducible Research - Assessment 2
+
+## Synopsis
+The basic goal of this project is to explore the NOAA Storm Database to answer the following questions: 
+1. Across the United States, which types of events (as indicated in the EVTYPE variable) are most harmful with respect to population health?
+2. Across the United States, which types of events have the greatest economic consequences?
+
+The data used for this project was downloaded from Storm Data [47Mb] <https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2>. The related documentation was downloaded from the "National Weather Service Storm Data Documentation" <https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2Fpd01016005curr.pdf> and "National Climatic Data Center Storm Events FAQ" <https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2FNCDC%20Storm%20Events-FAQ%20Page.pdf> 
+
+## Data Processing
+We use the `ddply` R package to analyze the storm data. 
+
+### Population Health Data Processing
+First we use the `aggregate` function to get the total number of fatalities by event type. Then we order the results in the descending order of fatalities.
+
+```{r ReadData, cache=TRUE}
+library (dplyr)
+#Read the CSV file
+dfStormData <- read.csv(file = "repdata_data_StormData.csv")
+```
+
+```{r Processing1, cache=TRUE}
+#Get the total number of fatalities by event type
+populationHealth <- aggregate (FATALITIES ~ EVTYPE, sum, data=dfStormData)
+
+#Order the fatalities in descending order
+populationHealthOrdered = populationHealth[order(-populationHealth$FATALITIES), ]
+
+```{r}
+#Get the total number of i bynjuries event type
+populationHealthInjuries <- aggregate (INJURIES ~ EVTYPE, sum, data=dfStormData)
+
+#Order the fatalities in descending order
+populationHealthInjuriesOrdered = populationHealthInjuries[order(-populationHealthInjuries$INJURIES), ]
+```
+
+### Property Damage Data Processing
+The values of the property damage are in the form of exponents. The `PROPEXP` column contains the alphabtical representation of the value by which the `PROPDMG` column should be multiplied to get the numerical value of the property damage. A new column that represents the total property damage was added to the data frame. The `r` code for this data processing is shown below. 
+
+```{r Processing2, cache=TRUE}
+#Property Data
+unique(dfStormData$PROPDMGEXP)
+#Replace the alphabetical exponential values by numeric values
+dfStormData$PROPEXP[dfStormData$PROPDMGEXP == "K"] <- 1000
+dfStormData$PROPEXP[dfStormData$PROPDMGEXP == "M"] <- 1e+06
+dfStormData$PROPEXP[dfStormData$PROPDMGEXP == ""] <- 1
+dfStormData$PROPEXP[dfStormData$PROPDMGEXP == "B"] <- 1e+09
+dfStormData$PROPEXP[dfStormData$PROPDMGEXP == "m"] <- 1e+06
+dfStormData$PROPEXP[dfStormData$PROPDMGEXP == "0"] <- 1
+dfStormData$PROPEXP[dfStormData$PROPDMGEXP == "5"] <- 1e+05
+dfStormData$PROPEXP[dfStormData$PROPDMGEXP == "6"] <- 1e+06
+dfStormData$PROPEXP[dfStormData$PROPDMGEXP == "4"] <- 10000
+dfStormData$PROPEXP[dfStormData$PROPDMGEXP == "2"] <- 100
+dfStormData$PROPEXP[dfStormData$PROPDMGEXP == "3"] <- 1000
+dfStormData$PROPEXP[dfStormData$PROPDMGEXP == "h"] <- 100
+dfStormData$PROPEXP[dfStormData$PROPDMGEXP == "7"] <- 1e+07
+dfStormData$PROPEXP[dfStormData$PROPDMGEXP == "H"] <- 100
+dfStormData$PROPEXP[dfStormData$PROPDMGEXP == "1"] <- 10
+dfStormData$PROPEXP[dfStormData$PROPDMGEXP == "8"] <- 1e+08
+# give 0 to invalid exponent data, so they not count in
+dfStormData$PROPEXP[dfStormData$PROPDMGEXP == "+"] <- 0
+dfStormData$PROPEXP[dfStormData$PROPDMGEXP == "-"] <- 0
+dfStormData$PROPEXP[dfStormData$PROPDMGEXP == "?"] <- 0
+
+#Add a new column to store the property damage values
+dfStormData$PROPDMGNUM <- dfStormData$PROPDMG * dfStormData$PROPEXP
+
+#Order the results in the descending order of property damage.
+propertyDamage <- aggregate (PROPDMGNUM ~ EVTYPE, sum, data=dfStormData)
+propertyDamageOrdered = propertyDamage[order(-propertyDamage$PROPDMGNUM), ]
+
+#dfStormData <- mutate (dfStormData, PROPDMGNUM = dfStormData$PROPDMG * dfStormData$PROPDMGEXP)
+``` 
+
+Similar processing was done to calculate the crop damage. The columns used in this case were `CROPDMG` and `CROPDMGEXP`. A new column that represents the total crop damage was also added to the data frame. 
+
+```{r Processing3, cache=TRUE}
+#CROP data
+unique(dfStormData$CROPDMGEXP)
+#Replace the alphabetical exponential values by numeric values
+dfStormData$CROPEXP[dfStormData$CROPDMGEXP == "M"] <- 1e+06
+dfStormData$CROPEXP[dfStormData$CROPDMGEXP == "K"] <- 1000
+dfStormData$CROPEXP[dfStormData$CROPDMGEXP == "m"] <- 1e+06
+dfStormData$CROPEXP[dfStormData$CROPDMGEXP == "B"] <- 1e+09
+dfStormData$CROPEXP[dfStormData$CROPDMGEXP == "0"] <- 1
+dfStormData$CROPEXP[dfStormData$CROPDMGEXP == "k"] <- 1000
+dfStormData$CROPEXP[dfStormData$CROPDMGEXP == "2"] <- 100
+dfStormData$CROPEXP[dfStormData$CROPDMGEXP == ""] <- 1
+# give 0 to invalid exponent data, so they not count in
+dfStormData$CROPEXP[dfStormData$CROPDMGEXP == "?"] <- 0
+
+#Add a new column to store the crop damage values
+dfStormData$CROPDMGNUM <- dfStormData$CROPDMG * dfStormData$CROPEXP
+
+#Order the results in the descending order of crop damage.
+cropDamage <- aggregate (CROPDMGNUM ~ EVTYPE, sum, data=dfStormData)
+cropDamageOrdered = cropDamage[order(-cropDamage$CROPDMGNUM), ]
+```
+
+## Results
+
+We plot the top 10 event types that resulted in the most fatalities, property damage and crop damage below. Based on the plots, we conclude the following: 
+
+1. The weather events types that caused the most fatalities are: tornado, excessive heat, flash flood, heat and lightening. 
+2. The weather events that caused the most injuries are: tornado, TSTM wind, flood and excessive heat.
+3. The weather events that caused the most property damage are: flood, typhoon, tornado and storm surge. 
+4. The weather events that caused the most crop damage are: draught, flood, river flood and ice storm.
+
+```{r}
+## Results
+par(mfrow = c(1,2), mar = c(12, 4, 3, 2), mgp = c(3, 1, 0), cex = 0.8)
+barplot(head (populationHealthOrdered$FATALITIES, 10), las= 3, names.arg = head (populationHealthOrdered$EVTYPE, 10), ylab = "Number of Fatalities", main = "Fatalities by Event Type", col = "red")
+barplot(head (populationHealthInjuriesOrdered$INJURIES, 10), las= 3, names.arg = head (populationHealthInjuriesOrdered$EVTYPE, 10), main = "Fatalities by Event Type", ylab = "Number of Injuries", col = "red")
+
+par(mfrow = c(1,2), mar = c(12, 4, 3, 2), mgp = c(3, 1, 0), cex = 0.8)
+barplot(head (propertyDamageOrdered$PROPDMGNUM, 10), las= 3, names.arg = head (propertyDamageOrdered$EVTYPE, 10), main = "Property Damage by Event Type", ylab = "Property Damage", col = "red")
+barplot(head (cropDamageOrdered$CROPDMGNUM, 10), las= 3, names.arg = head (cropDamageOrdered$EVTYPE, 10), main = "Crop Damage by Event Type", ylab = "Crop Damage", col = "red")
+
+```
