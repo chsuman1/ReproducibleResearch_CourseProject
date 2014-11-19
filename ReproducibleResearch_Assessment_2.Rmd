@@ -18,7 +18,7 @@ We use the `ddply` R package to analyze the storm data.
 ### Population Health Data Processing
 First we use the `aggregate` function to get the total number of fatalities by event type. Then we order the results in the descending order of fatalities.
 
-```{r results='hide'}
+```{r results='hide', message=FALSE}
 library (dplyr)
 library (RCurl)
 library (R.utils)
